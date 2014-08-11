@@ -1,9 +1,9 @@
 require 'sinatra'
 
-post '/' do
+post '/callback' do
   URI.unescape( params[:data] )
 end
 
 get '/' do
-  "Only POST is supported"
+  "Please post your query to /callback?data=someValue "
 end
