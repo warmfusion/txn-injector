@@ -9,7 +9,9 @@ post '/callback' do
                 "path"  => request.path_info,
                 "query" => request.query_string
               }
-  URI.unescape( params[:data] )
+  headers \
+    "Content-Type" => "application/json"
+  body URI.unescape( params[:data] )
 end
 
 get '/' do
