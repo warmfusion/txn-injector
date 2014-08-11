@@ -1,0 +1,1 @@
+require './callback'run Sinatra::Application
