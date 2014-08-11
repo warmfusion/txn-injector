@@ -9,8 +9,7 @@ post '/callback' do
                 "path"  => request.path_info,
                 "query" => request.query_string
               }
-  headers \
-    "Content-Type" => "application/json"
+  content_type :json
   body URI.unescape( params[:data] )
 end
 
