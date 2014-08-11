@@ -1,8 +1,7 @@
 require 'sinatra'
 
-
 post '/' do
-  puts URI.unescape(params[:data])
+  puts URI.unescape( params[:data] )
 end
 
 get '/' do

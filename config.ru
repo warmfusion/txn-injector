@@ -1,1 +1,1 @@
-require './callback'run Sinatra::Application
+require './callback'run Sinatra::Application
