@@ -83,12 +83,12 @@ get '/callback/?' do
 
   # Allow users to filter by incoming id value using ?id=1235
   unless params[:id].nil?
-    visible_requests.select! { |r| r["id"] == params[:id] }
+    visible_requests = visible_requests.select { |r| r["id"] == params[:id] }
   end
 
   # Allow users to filter by path using ?path=/callback
   unless params[:path].nil?
-    visible_requests.select! { |r| r["request"]["path"] == params[:path] }
+    visible_requests = visible_requests.select { |r| r["request"]["path"] == params[:path] }
   end
 
   response = { 
