@@ -1,1 +1,1 @@
-web: bundle exec ruby callback.rb -p $PORT
+web: bundle exec ruby handler.rb -p $PORT
