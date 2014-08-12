@@ -8,7 +8,8 @@ requests = []
 get '/' do
   content_type :json  
   response = { "introduction" => "Tobys Trivial Txn Injector",
-               "operations" => { "callback" => "%scallback" % request.url },
+               "operations" => { "callback" => "%scallback" % request.url, 
+                                 "teapot" => "%steapot" % request.url },
              }.to_json()
 end
 
@@ -22,17 +23,24 @@ post '/callback' do
   else
      body "OK"
   end
+ 
+  unless params[:status].nil?
+    status params[:status]
+  end
 
+  guid = SecureRandom.uuid
 
   request.body.rewind
   requests << { 
 		"id"       => params[:id],
+		"guid"       => guid,
                 "date"     => DateTime.now(),
                 "path"     => request.path_info,
                 "query"    => request.query_string,
                 "body"     => request.body.read, 
-                "response" => body,
-                "_self"    => "%s/%s" % [request.url.split('?').first, params[:id]]
+                "response" => { "body" => body, "status" => status, "headers" => headers },
+                "_self"    => "%s/%s" % [request.url.split('?').first, guid],
+                "_delete"    => "%s/%s/delete" % [request.url.split('?').first, guid]
               }
 
   # Pop the top off the requets lists if it gets too large :-)
@@ -73,20 +81,29 @@ end
 #  - useful for sharing callback events with others
 get '/callback/:id' do |id|
   content_type :json
-  callback_request = requests.select { |r| r["id"] == id }
+  callback_request = requests.select { |r| r["guid"] == id }
 
-  body = { "operations" => { "delete" => "%s/delete" % request.url },
-           "request" => callback_request }.to_json()
+  body = callback_request.to_json()
 end
 
 # Remove a callback event from the array
 # - useful for tidying up after testing
 get '/callback/:id/delete' do |id|
   content_type :json
-  requests.delete_if{ |request| request[:id] == id }
+  requests.delete_if{ |request| request["guid"] == id }
 
   body = "OK".to_json
 end
 
+
+
+# Teapot
+get '/teapot' do
+  status 418
+  headers \
+    "Allow"   => "BREW, POST, GET, PROPFIND, WHEN",
+    "Refresh" => "Refresh: 3; http://www.ietf.org/rfc/rfc2324.txt"
+  body "I'm a tea pot!"
+end
 
 
