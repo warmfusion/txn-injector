@@ -1,22 +1,35 @@
 require 'sinatra'
+require 'docdsl'
 require 'json'
+
+# Online Documentation!
+register Sinatra::DocDsl
+
+page do
+  title "Callback Documentation"
+  header "The Simple Callback Handler"
+  introduction "This is a trivial implementation of the txn-injectors callback functionality \
+      written to work on heroku"
+end
 
 MAX_REQUEST_ARRAY_SIZE=500
 requests = []
 
-# Friendly home page :-)
+documentation "Go look at /docs" do
+  response "Redirects to the documentation"
+  status 303
+end
 get '/' do
-  content_type :json  
-  response = { "introduction" => "Tobys Trivial Txn Injector",
-               "operations" => { "callback" => "%scallback" % request.url, 
-                                 "teapot" => "%steapot" % request.url },
-             }.to_json()
+  redirect "/doc"
 end
 
 
-# The real callback handler that catches
-# stores and returns a value encoded in the 
-# data parameter
+documentation "Post a callback and get a response" do
+  query_param :id, "A useful Identifier (optional) that can be used to track requests"
+  query_param :data, "The data to return in the callback response, default 'OK'"
+  query_param :status, "A http status code to use on the response, default 200"
+  payload "Any content at all"
+end
 post '/callback' do
   unless params[:data].nil?
      body URI.unescape( params[:data] )
@@ -55,7 +68,12 @@ post '/callback' do
      
 end
 
-# Returns all the recieved callback events so far
+
+documentation "Get a list of the recently submitted callback requests and responses. Supports pagination to reduce the volume of API messages" do
+  query_param :id, "Filter by ID and only return those requests with matching ID"
+  query_param :path, "Only include requests made on a given path"
+  query_param :page, "Flip to a given page number"
+end
 get '/callback/?' do
   content_type :json
   size=10
@@ -85,8 +103,7 @@ get '/callback/?' do
 end
 
  
-# Remove all the callbacks in one go
-#  - useful to clear up after bigger testing
+documentation "Remove all the stored messages"
 get '/callback/clear' do
   requests = []
   content_type :json
@@ -95,8 +112,9 @@ end
 
 
 
-# View a callback in isolation
-#  - useful for sharing callback events with others
+documentation "View a callback in isolation" do
+  param :id, "The system GUID of the message you want to look at"
+end
 get '/callback/:id' do |id|
   content_type :json
   callback_request = requests.select { |r| r["guid"] == id }
@@ -104,8 +122,9 @@ get '/callback/:id' do |id|
   body = callback_request.to_json()
 end
 
-# Remove a callback event from the array
-# - useful for tidying up after testing
+documentation "Remove a callback event from the array" do
+  param :id, "The system GUID of the message you want to remove"
+end
 get '/callback/:id/delete' do |id|
   content_type :json
   requests.delete_if{ |request| request["guid"] == id }
@@ -115,7 +134,10 @@ end
 
 
 
-# Teapot
+documentation "I'm a Teapot" do
+  payload "I'm a tea pot!"
+  status 418
+end
 get '/teapot' do
   status 418
   headers \
@@ -139,3 +161,6 @@ end
 after :method => :post do
   puts "post-process POST"
 end
+
+
+doc_endpoint "/doc"
