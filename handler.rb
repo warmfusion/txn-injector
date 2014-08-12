@@ -33,12 +33,17 @@ post '/callback' do
   request.body.rewind
   requests << { 
 		"id"       => params[:id],
-		"guid"       => guid,
+		"guid"     => guid,
                 "date"     => DateTime.now(),
-                "path"     => request.path_info,
-                "query"    => request.query_string,
-                "body"     => request.body.read, 
-                "response" => { "body" => body, "status" => status, "headers" => headers },
+                "request"  => {
+                    "path"     => request.path_info,
+                    "query"    => request.query_string,
+                    "body"     => request.body.read  },
+                    "request_env"  => request.env,
+                "response" => { 
+                    "body" => body, 
+                    "status" => status, 
+                    "headers" => headers },
                 "_self"    => "%s/%s" % [request.url.split('?').first, guid],
                 "_delete"    => "%s/%s/delete" % [request.url.split('?').first, guid]
               }
@@ -56,14 +61,26 @@ get '/callback/?' do
   size=10
   from = params[:page].nil? ? 1 : params[:page].to_i
 
+  visible_requests = requests
+
+  # Allow users to filter by incoming id value using ?id=1235
+  unless params[:id].nil?
+    visible_requests.select! { |r| r["id"] == params[:id] }
+  end
+
+  # Allow users to filter by path using ?path=/callback
+  unless params[:path].nil?
+    visible_requests.select! { |r| r["request"]["path"] == params[:path] }
+  end
+
   response = { 
-               "operations" => { "clear" => "%s/clear" % request.url },
+               "operations" => { "clear" => "%s/clear" % request.url.split('?').first },
                "pagination" => { "page" => from, 
                                  "page_size" => size ,
-                                 "page_count" => ((requests.length / size).floor() +1), 
-                                 "total_requests" => requests.length ,
+                                 "page_count" => ((visible_requests.length / size).floor() +1), 
+                                 "total_requests" => visible_requests.length ,
                                 },
-               "requests" => requests.reverse.slice((from -1) * size ,size)
+               "requests" => visible_requests.reverse.slice((from -1) * size ,size)
              }.to_json()
 end
 
@@ -75,6 +92,7 @@ get '/callback/clear' do
   content_type :json
   { :request => "cleared" }.to_json()
 end
+
 
 
 # View a callback in isolation
@@ -107,3 +125,17 @@ get '/teapot' do
 end
 
 
+
+
+set(:method) do |method|
+  method = method.to_s.upcase
+  condition { request.request_method == method }
+end
+
+before :method => :post do
+  puts "pre-process POST"
+end 
+
+after :method => :post do
+  puts "post-process POST"
+end
