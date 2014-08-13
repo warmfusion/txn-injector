@@ -15,6 +15,8 @@ end
 MAX_REQUEST_ARRAY_SIZE=500
 requests = []
 
+stateful_requests = {}
+
 documentation "Go look at /docs" do
   response "Redirects to the documentation"
   status 303
@@ -24,7 +26,12 @@ get '/' do
 end
 
 
-documentation "Post a callback and get a response" do
+documentation "Post a callback and get a response.
+
+The status parameter accepts a comma separated list of status codes which are used
+in sequence for each incoming request - This allows you to setup a retry chain without
+changing the url in the application. For example, ```status=404,403,200``` would return
+each of those codes in sequence, and will repeat the last status" do
   query_param :id, "A useful Identifier (optional) that can be used to track requests"
   query_param :data, "The data to return in the callback response, default 'OK'"
   query_param :status, "A http status code to use on the response, default 200"
@@ -37,10 +44,28 @@ post '/callback' do
      body "OK"
   end
  
-  unless params[:status].nil?
-    status params[:status]
+  # Decide which status code to return  
+  unless params[:status].nil?                              # If the user has included a status code..
+    status_codes = params[:status].split(',')              # They can include multiple comma separated values, eg 404,403,303,200
+    if status_codes.length == 1                             # but if only one is provided
+        status params[:status]                             #   simply return it as the status
+    else                                                   # But if more than one status code exists
+        if stateful_requests.has_key?( params[:id] )       #   and we've seen this request before
+            state_index = stateful_requests[params[:id]]   #     Then get the status index
+        else                                               #   otherwise...
+            state_index = 0                                #      The index starts at 0
+        end                                                #   and...
+        if state_index < status_codes.length               #   if the index is lower than the number of status' provided
+           status status_codes[state_index].to_i         #      the status is returned from the index
+        else                                               #   otherwise                
+           status status_codes.last.to_i                 #      Just return the last status on the list
+        end                                                #   and...
+        state_index = state_index+1                        #   increment the index
+        stateful_requests[params[:id]] = state_index       #   and store it for future callback attempts        
+    end
   end
-
+  
+  
   guid = SecureRandom.uuid
 
   request.body.rewind
