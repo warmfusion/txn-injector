@@ -2,6 +2,11 @@ require 'sinatra'
 require 'docdsl'
 require 'json'
 
+
+configure :production do
+  require 'newrelic_rpm'
+end
+
 # Online Documentation!
 register Sinatra::DocDsl
 
