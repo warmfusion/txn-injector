@@ -3,6 +3,7 @@ GEM
   specs:
     json (1.8.1)
     kramdown (1.3.1)
+    newrelic_rpm (3.9.1.236)
     rack (1.5.2)
     rack-protection (1.5.3)
       rack
@@ -19,5 +20,6 @@ PLATFORMS
 
 DEPENDENCIES
   json
+  newrelic_rpm
   sinatra
   sinatra-docdsl
